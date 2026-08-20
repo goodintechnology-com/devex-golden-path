@@ -21,6 +21,8 @@ Requires Java 21 and Maven (no wrapper is checked in — both are installed syst
 
 CI (`.github/workflows/ci.yml`) runs `mvn test` on every push/PR to `main`. It's intentionally just compile+test for now; a later stage layers in SonarQube, packaging, and container-image publishing on top of this same workflow.
 
+`.github/copilot-instructions.md` holds the repo-level conventions given to GitHub Copilot (architecture, coding/testing/security conventions). Keep it in sync with the architecture notes below if either changes.
+
 ## Architecture
 
 Single Spring Boot module. All application code lives under `com.goodintechnology.devexgoldenpath.release`:

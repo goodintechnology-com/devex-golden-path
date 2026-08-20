@@ -38,6 +38,10 @@ docker run --rm -p 8080:8080 devex-golden-path
 
 `.github/workflows/ci.yml` compiles and runs the test suite on every push/PR to `main`. It's deliberately minimal for now (compile + test) — a later stage adds quality gates, packaging, and container publishing.
 
+## Copilot instructions
+
+`.github/copilot-instructions.md` gives GitHub Copilot repo-level context: architecture, coding conventions, testing and security expectations, and how generated code should fit into this project. It's picked up automatically by Copilot Chat in supported IDEs and on github.com.
+
 ## API
 
 | Method | Path                       | Description                                   |
