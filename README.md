@@ -36,9 +36,15 @@ docker run --rm -p 8080:8080 devex-golden-path
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs the full pipeline on every push/PR to `main`: Compile → Unit Test → **SonarCloud Scan → SonarCloud Quality Gate Check** → Package → Container Build. On pushes to `main`, the built image is also published to `ghcr.io/rgoodin/devex-golden-path` (tagged with the commit SHA and `latest`) using the workflow's built-in `GITHUB_TOKEN` — no extra secrets needed. The first time a package is published this way it may land as private; make it public from the repo's Packages tab if you want it pullable without auth.
+`.github/workflows/ci.yml` runs the full pipeline on every push/PR to `main`: Compile → Unit Test → **SonarCloud Scan → SonarCloud Quality Gate Check** → **Xray Audit** → Package → **Publish to Artifactory** → Container Build. On pushes to `main`, the built image is also published to `ghcr.io/rgoodin/devex-golden-path` (tagged with the commit SHA and `latest`) using the workflow's built-in `GITHUB_TOKEN` — no extra secrets needed. The first time a package is published this way it may land as private; make it public from the repo's Packages tab if you want it pullable without auth.
 
-A failing quality gate fails the job and blocks `Package`/`Container Build` from running for that commit — the org's quality policy is enforced automatically, not something a developer has to remember to run. See the project on [SonarCloud](https://sonarcloud.io/project/overview?id=devex-golden-path).
+A failing SonarCloud quality gate or a failing Xray audit (High+ severity CVE in a dependency) fails the job and blocks everything downstream of it for that commit — the org's quality and security policy is enforced automatically, not something a developer has to remember to run. See the project on [SonarCloud](https://sonarcloud.io/project/overview?id=devex-golden-path).
+
+## Artifactory + Xray
+
+Every push/PR is scanned by Xray (`jf audit --watches=golden-path-security-watch`, backed by a security policy that fails the build on any High+ severity CVE). On success, the packaged jar and its CycloneDX SBOM are published to `golden-path-libs-snapshot-local` on our JFrog Platform trial (`https://trialpghcwm.jfrog.io`), tagged with Build Info linking the artifact back to the exact commit and CI run.
+
+The app also generates its own SBOM at build time (Spring Boot's native SBOM support via the `cyclonedx-maven-plugin`), bundled into the jar and exposed live at `/actuator/sbom/application`.
 
 ## Copilot instructions
 

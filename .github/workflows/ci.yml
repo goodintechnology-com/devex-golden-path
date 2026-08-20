@@ -8,6 +8,8 @@ on:
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}
+  JF_URL: https://trialpghcwm.jfrog.io
+  ARTIFACT_PATH: golden-path-libs-snapshot-local/com/goodintechnology/devex-golden-path/0.1.0-SNAPSHOT
 
 jobs:
   build:
@@ -46,8 +48,28 @@ jobs:
         with:
           scanMetadataReportFile: target/sonar/report-task.txt
 
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v5.1.0
+        env:
+          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+      - name: Xray Audit
+        run: jf audit --watches=golden-path-security-watch
+
       - name: Package
         run: mvn -B package -DskipTests
+
+      - name: Publish to Artifactory
+        run: |
+          jf rt upload target/devex-golden-path-0.1.0-SNAPSHOT.jar \
+            "$ARTIFACT_PATH/devex-golden-path-0.1.0-SNAPSHOT.jar" \
+            --build-name=devex-golden-path --build-number=${{ github.run_number }}
+          jf rt upload target/classes/META-INF/sbom/application.cdx.json \
+            "$ARTIFACT_PATH/devex-golden-path-0.1.0-SNAPSHOT-bom.json" \
+            --build-name=devex-golden-path --build-number=${{ github.run_number }}
+
+      - name: Publish Build Info
+        run: jf rt build-publish devex-golden-path ${{ github.run_number }}
 
       - name: Build container image
         run: docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
