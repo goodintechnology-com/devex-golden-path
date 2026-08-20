@@ -36,9 +36,9 @@ docker run --rm -p 8080:8080 devex-golden-path
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs the full pipeline on every push/PR to `main`: Compile → Unit Test → Package → Container Build. On pushes to `main`, the built image is also published to `ghcr.io/rgoodin/devex-golden-path` (tagged with the commit SHA and `latest`) using the workflow's built-in `GITHUB_TOKEN` — no extra secrets needed. The first time a package is published this way it may land as private; make it public from the repo's Packages tab if you want it pullable without auth.
+`.github/workflows/ci.yml` runs the full pipeline on every push/PR to `main`: Compile → Unit Test → **SonarCloud Scan → SonarCloud Quality Gate Check** → Package → Container Build. On pushes to `main`, the built image is also published to `ghcr.io/rgoodin/devex-golden-path` (tagged with the commit SHA and `latest`) using the workflow's built-in `GITHUB_TOKEN` — no extra secrets needed. The first time a package is published this way it may land as private; make it public from the repo's Packages tab if you want it pullable without auth.
 
-A later stage adds a SonarQube quality-gate step to this same workflow.
+A failing quality gate fails the job and blocks `Package`/`Container Build` from running for that commit — the org's quality policy is enforced automatically, not something a developer has to remember to run. See the project on [SonarCloud](https://sonarcloud.io/project/overview?id=devex-golden-path).
 
 ## Copilot instructions
 

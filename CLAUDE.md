@@ -19,7 +19,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Requires Java 21 and Maven (no wrapper is checked in — both are installed system-wide in this environment).
 
-CI/CD (`.github/workflows/ci.yml`) runs on every push/PR to `main`: Compile → Unit Test → Package → Container Build, and on pushes to `main` also pushes the image to `ghcr.io/${{ github.repository }}` (tags: commit SHA and `latest`) via the built-in `GITHUB_TOKEN`. A later stage layers a SonarQube step onto this same workflow.
+CI/CD (`.github/workflows/ci.yml`) runs on every push/PR to `main`: Compile → Unit Test → SonarCloud Scan → SonarCloud Quality Gate Check → Package → Container Build, and on pushes to `main` also pushes the image to `ghcr.io/${{ github.repository }}` (tags: commit SHA and `latest`) via the built-in `GITHUB_TOKEN`. The quality gate step fails the job (and blocks Package/Container Build) when SonarCloud's gate fails. SonarCloud project: org `rgoodin`, project key `devex-golden-path` — identifiers live in `pom.xml` `<properties>`, the token lives only in the `SONAR_TOKEN` repo secret.
+
+Coverage comes from `jacoco-maven-plugin` (bound to the `test` phase), producing `target/site/jacoco/jacoco.xml`, which SonarCloud reads via the `sonar.coverage.jacoco.xmlReportPaths` property.
 
 `.github/copilot-instructions.md` holds the repo-level conventions given to GitHub Copilot (architecture, coding/testing/security conventions). Keep it in sync with the architecture notes below if either changes.
 
