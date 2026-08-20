@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`devex-golden-path` is a staged "Golden Path" platform-engineering project (see the GitHub issues for the full roadmap: base app → developer template → Copilot-aware repo instructions → CI/CD → SonarQube → Artifactory/Xray). This stage implements the base application: a Deployment Readiness API that gates release deployment on a fixed set of check results.
+`devex-golden-path` is a staged "Golden Path" platform-engineering project (see the GitHub issues for the full roadmap: base app → developer template → Copilot-aware repo instructions → CI/CD → SonarQube → Artifactory/Xray). The app itself is a Deployment Readiness API that gates release deployment on a fixed set of check results. This repo also doubles as the project template — it's a GitHub "Template repository", and new services are meant to be generated from it and then have the `release` package swapped for their own domain logic.
 
 ## Commands
 
@@ -14,8 +14,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Run a single test method: `mvn test -Dtest=ReleaseServiceTest#readinessIsReadyWhenAllRequiredChecksPass`
 - Run the app locally: `mvn spring-boot:run` (listens on `http://localhost:8080`)
 - Package a jar: `mvn package`
+- Build the container image: `docker build -t devex-golden-path .`
+- Run the container: `docker run --rm -p 8080:8080 devex-golden-path`
 
 Requires Java 21 and Maven (no wrapper is checked in — both are installed system-wide in this environment).
+
+CI (`.github/workflows/ci.yml`) runs `mvn test` on every push/PR to `main`. It's intentionally just compile+test for now; a later stage layers in SonarQube, packaging, and container-image publishing on top of this same workflow.
 
 ## Architecture
 

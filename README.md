@@ -2,7 +2,16 @@
 
 A "Golden Path" platform-engineering project: the developer experience from "I need a new service" to "I have a compliant, buildable, deployable service."
 
-This first stage is a **Deployment Readiness API** — teams submit release metadata and check results (unit tests, quality gate, security scan, SBOM, approval), and the service decides whether a release is ready to deploy, and if not, why.
+This repo is also the **template**: use GitHub's "Use this template" button to start a new service with the same approved structure, then swap out the `release` package for your own domain logic. The questions a new service shouldn't have to ask twice:
+
+- **Java version** — 21 (see `pom.xml`, `java.version`).
+- **Structure** — a single Maven module, application code under `src/main/java/<groupId>/...`, tests mirroring it under `src/test/java/...`.
+- **Build** — `mvn package`.
+- **Test** — `mvn test`.
+- **Containerize** — the `Dockerfile` in this repo (multi-stage: build with Maven, run on a JRE image).
+- **CI** — `.github/workflows/ci.yml` runs on every push/PR to `main`.
+
+This app itself is a **Deployment Readiness API** — teams submit release metadata and check results (unit tests, quality gate, security scan, SBOM, approval), and the service decides whether a release is ready to deploy, and if not, why.
 
 ## Running
 
@@ -17,6 +26,17 @@ The API listens on `http://localhost:8080`.
 ```
 mvn test
 ```
+
+## Containerizing
+
+```
+docker build -t devex-golden-path .
+docker run --rm -p 8080:8080 devex-golden-path
+```
+
+## CI
+
+`.github/workflows/ci.yml` compiles and runs the test suite on every push/PR to `main`. It's deliberately minimal for now (compile + test) — a later stage adds quality gates, packaging, and container publishing.
 
 ## API
 
