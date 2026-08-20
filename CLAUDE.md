@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Requires Java 21 and Maven (no wrapper is checked in — both are installed system-wide in this environment).
 
-CI (`.github/workflows/ci.yml`) runs `mvn test` on every push/PR to `main`. It's intentionally just compile+test for now; a later stage layers in SonarQube, packaging, and container-image publishing on top of this same workflow.
+CI/CD (`.github/workflows/ci.yml`) runs on every push/PR to `main`: Compile → Unit Test → Package → Container Build, and on pushes to `main` also pushes the image to `ghcr.io/${{ github.repository }}` (tags: commit SHA and `latest`) via the built-in `GITHUB_TOKEN`. A later stage layers a SonarQube step onto this same workflow.
 
 `.github/copilot-instructions.md` holds the repo-level conventions given to GitHub Copilot (architecture, coding/testing/security conventions). Keep it in sync with the architecture notes below if either changes.
 

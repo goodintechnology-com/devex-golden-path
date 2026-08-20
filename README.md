@@ -34,9 +34,11 @@ docker build -t devex-golden-path .
 docker run --rm -p 8080:8080 devex-golden-path
 ```
 
-## CI
+## CI/CD
 
-`.github/workflows/ci.yml` compiles and runs the test suite on every push/PR to `main`. It's deliberately minimal for now (compile + test) — a later stage adds quality gates, packaging, and container publishing.
+`.github/workflows/ci.yml` runs the full pipeline on every push/PR to `main`: Compile → Unit Test → Package → Container Build. On pushes to `main`, the built image is also published to `ghcr.io/rgoodin/devex-golden-path` (tagged with the commit SHA and `latest`) using the workflow's built-in `GITHUB_TOKEN` — no extra secrets needed. The first time a package is published this way it may land as private; make it public from the repo's Packages tab if you want it pullable without auth.
+
+A later stage adds a SonarQube quality-gate step to this same workflow.
 
 ## Copilot instructions
 
