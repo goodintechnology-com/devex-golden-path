@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
+      ARTIFACTORY_ACCESS_TOKEN:
+        required: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+  JF_URL: https://trialpghcwm.jfrog.io
+  SERVICE_NAME: ${{ github.event.repository.name }}
+  ARTIFACT_PATH: golden-path-libs-snapshot-local/com/goodintechnology/${{ github.event.repository.name }}/0.1.0-SNAPSHOT
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Compile
+        run: mvn -B compile
+
+      - name: Unit Test
+        run: mvn -B test
+
+      - name: SonarCloud Scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar -Dsonar.token=$SONAR_TOKEN
+
+      - name: SonarCloud Quality Gate Check
+        uses: sonarsource/sonarqube-quality-gate-action@7a5fffe8e523c40e0c740b6bc2712ab503e52efa # v1.2.1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          scanMetadataReportFile: target/sonar/report-task.txt
+
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@deda456d982fc5e9a7a020b63eb0d2968aedd33e # v5.1.0
+        env:
+          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+      - name: Xray Audit
+        run: jf audit --watches=golden-path-security-watch
+
+      - name: Package
+        run: mvn -B package -DskipTests
+
+      - name: Publish to Artifactory
+        run: |
+          jf rt upload target/${SERVICE_NAME}-0.1.0-SNAPSHOT.jar \
+            "$ARTIFACT_PATH/${SERVICE_NAME}-0.1.0-SNAPSHOT.jar" \
+            --build-name="$SERVICE_NAME" --build-number=${{ github.run_number }}
+          jf rt upload target/classes/META-INF/sbom/application.cdx.json \
+            "$ARTIFACT_PATH/${SERVICE_NAME}-0.1.0-SNAPSHOT-bom.json" \
+            --build-name="$SERVICE_NAME" --build-number=${{ github.run_number }}
+
+      - name: Publish Build Info
+        run: jf rt build-publish "$SERVICE_NAME" ${{ github.run_number }}
+
+      - name: Build container image
+        run: docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push container image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker push "$IMAGE" --all-tags
