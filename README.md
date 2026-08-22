@@ -1,76 +1,251 @@
-# devex-golden-path
+# Developer Golden Path
 
-A "Golden Path" platform-engineering project: the developer experience from "I need a new service" to "I have a compliant, buildable, deployable service."
+A reusable, Copilot-aware Java service template with CI/CD, automated quality gates, dependency security scanning, artifact publishing, SBOM generation, and container publishing built in.
 
-This repo is also the **template**: use GitHub's "Use this template" button to start a new service with the same approved structure, then swap out the `release` package for your own domain logic. The questions a new service shouldn't have to ask twice:
+The goal is simple: a developer should be able to create a new service using an approved engineering path without having to assemble the build, security, quality, and delivery tooling themselves.
 
-- **Java version** — 21 (see `pom.xml`, `java.version`).
-- **Structure** — a single Maven module, application code under `src/main/java/<groupId>/...`, tests mirroring it under `src/test/java/...`.
-- **Build** — `mvn package`.
-- **Test** — `mvn test`.
-- **Containerize** — the `Dockerfile` in this repo (multi-stage: build with Maven, run on a JRE image).
-- **CI** — `.github/workflows/ci.yml` runs on every push/PR to `main`.
+## Start Here — Using This Template
 
-This app itself is a **Deployment Readiness API** — teams submit release metadata and check results (unit tests, quality gate, security scan, SBOM, approval), and the service decides whether a release is ready to deploy, and if not, why.
+After creating a new repository using **Use this template** in GitHub:
 
-## Running
+### 1. Clone your new repository
 
-```
-mvn spring-boot:run
+```bash
+git clone <your-repository-url>
+cd <your-repository-name>
 ```
 
-The API listens on `http://localhost:8080`.
+### 2. Initialize the service
 
-## Testing
+Run the initialization script using the name of your new repository:
 
-```
-mvn test
-```
-
-## Containerizing
-
-```
-docker build -t devex-golden-path .
-docker run --rm -p 8080:8080 devex-golden-path
+```bash
+./scripts/init-service.sh <service-name>
 ```
 
-## CI/CD
+For example:
 
-`.github/workflows/ci.yml` runs the full pipeline on every push/PR to `main`: Compile → Unit Test → **SonarCloud Scan → SonarCloud Quality Gate Check** → **Xray Audit** → Package → **Publish to Artifactory** → Container Build. On pushes to `main`, the built image is also published to `ghcr.io/rgoodin/devex-golden-path` (tagged with the commit SHA and `latest`) using the workflow's built-in `GITHUB_TOKEN` — no extra secrets needed. The first time a package is published this way it may land as private; make it public from the repo's Packages tab if you want it pullable without auth.
-
-A failing SonarCloud quality gate or a failing Xray audit (High+ severity CVE in a dependency) fails the job and blocks everything downstream of it for that commit — the org's quality and security policy is enforced automatically, not something a developer has to remember to run. See the project on [SonarCloud](https://sonarcloud.io/project/overview?id=devex-golden-path).
-
-## Artifactory + Xray
-
-Every push/PR is scanned by Xray (`jf audit --watches=golden-path-security-watch`, backed by a security policy that fails the build on any High+ severity CVE). On success, the packaged jar and its CycloneDX SBOM are published to `golden-path-libs-snapshot-local` on our JFrog Platform trial (`https://trialpghcwm.jfrog.io`), tagged with Build Info linking the artifact back to the exact commit and CI run.
-
-The app also generates its own SBOM at build time (Spring Boot's native SBOM support via the `cyclonedx-maven-plugin`), bundled into the jar and exposed live at `/actuator/sbom/application`.
-
-## Copilot instructions
-
-`.github/copilot-instructions.md` gives GitHub Copilot repo-level context: architecture, coding conventions, testing and security expectations, and how generated code should fit into this project. It's picked up automatically by Copilot Chat in supported IDEs and on github.com.
-
-## API
-
-| Method | Path                       | Description                                   |
-|--------|----------------------------|------------------------------------------------|
-| POST   | `/releases`                | Create a release (`version`, `environment`)     |
-| GET    | `/releases/{id}`           | Fetch a release and its current check results   |
-| POST   | `/releases/{id}/checks`    | Submit/update a check result (`checkType`, `status`) |
-| GET    | `/releases/{id}/readiness` | Compute readiness: `READY` or `BLOCKED` (+ reasons) |
-
-Required checks: `UNIT_TESTS`, `QUALITY_GATE`, `SECURITY_SCAN`, `SBOM`, `APPROVAL`, each with status `PENDING`, `PASS`, or `FAIL`. A release is `READY` only when every required check is `PASS`.
-
-Example:
-
+```bash
+./scripts/init-service.sh deployment-approval-service
 ```
-curl -X POST localhost:8080/releases \
-  -H 'Content-Type: application/json' \
-  -d '{"version":"1.8.4","environment":"production"}'
 
-curl -X POST localhost:8080/releases/{id}/checks \
-  -H 'Content-Type: application/json' \
-  -d '{"checkType":"APPROVAL","status":"PASS"}'
+The initialization script configures the service-specific identity in:
 
-curl localhost:8080/releases/{id}/readiness
+- Maven artifact and project name
+- Spring Boot application name
+- SonarQube project key
+- GitHub Copilot repository instructions
+
+Platform-wide configuration, such as shared security policies and artifact repositories, remains unchanged.
+
+Review the generated changes before committing:
+
+```bash
+git diff
 ```
+
+### 3. Configure SonarQube Cloud
+
+Import the new GitHub repository into SonarQube Cloud.
+
+Because the Golden Path performs SonarQube analysis from CI, disable **Automatic Analysis** for the project.
+
+Create a SonarQube analysis token and add it to the GitHub repository under:
+
+**Settings → Secrets and variables → Actions**
+
+Create the repository secret:
+
+```text
+SONAR_TOKEN
+```
+
+### 4. Configure JFrog
+
+Add the JFrog access token to the GitHub repository's Actions secrets:
+
+```text
+ARTIFACTORY_ACCESS_TOKEN
+```
+
+The Golden Path uses the centrally configured JFrog repositories and Xray security policy. These are platform configuration and should not be renamed for individual services.
+
+### 5. Review the service documentation
+
+Review and update:
+
+- `README.md`
+- `CLAUDE.md`
+
+These files contain descriptive documentation that should reflect the purpose and domain of the new service. They are deliberately not rewritten automatically by the initialization script.
+
+### 6. Commit and push
+
+```bash
+git add .
+git commit -m "Initialize service from Golden Path"
+git push
+```
+
+The Golden Path CI pipeline will automatically compile, test, analyze, security scan, package, publish artifacts, generate an SBOM, build the container image, and publish the image.
+
+---
+
+## What the Golden Path Provides
+
+The template establishes an opinionated engineering baseline so each service does not need to independently configure its delivery toolchain.
+
+### Application Platform
+
+- Java 21
+- Spring Boot 3.x
+- Maven
+- Docker
+
+### Developer Experience
+
+- GitHub repository template
+- Repository-level GitHub Copilot instructions
+- Standard Maven project structure
+- Repeatable service initialization
+- Centralized reusable CI workflow
+
+### CI/CD
+
+GitHub Actions provides the automated delivery pipeline.
+
+On pushes and pull requests to `main`, the pipeline performs:
+
+```text
+Compile
+  ↓
+Unit Test
+  ↓
+SonarQube Scan
+  ↓
+SonarQube Quality Gate
+  ↓
+JFrog Xray Audit
+  ↓
+Package
+  ↓
+Publish to Artifactory
+  ↓
+Publish Build Info
+  ↓
+Build Container Image
+  ↓
+Publish Container Image
+```
+
+A failed quality or security gate stops downstream delivery.
+
+## SonarQube Quality Gates
+
+SonarQube Cloud provides static analysis and quality enforcement.
+
+Analysis is performed by the CI pipeline rather than SonarQube Automatic Analysis. This allows the Quality Gate to become an explicit delivery control.
+
+If the Quality Gate fails, the pipeline stops before artifacts and container images are published.
+
+## JFrog Artifactory and Xray
+
+Packaged artifacts are published to JFrog Artifactory.
+
+JFrog Xray audits application dependencies against the shared Golden Path security policy:
+
+```text
+golden-path-security-watch
+```
+
+The security watch is platform policy and intentionally remains the same across generated services.
+
+Build Info links published artifacts to the corresponding CI execution.
+
+## Software Bill of Materials
+
+The Maven build generates a CycloneDX SBOM.
+
+The SBOM is:
+
+- packaged with the application
+- published alongside the application artifact
+- available through the Spring Boot actuator SBOM endpoint
+
+This provides a machine-readable inventory of the components contained in the application.
+
+## Container Publishing
+
+The pipeline builds a Docker image for the service.
+
+On pushes to `main`, the image is published to GitHub Container Registry using:
+
+```text
+ghcr.io/<owner>/<repository>
+```
+
+Images are tagged with the Git commit SHA and `latest`.
+
+## Reusable CI
+
+The implementation of the delivery pipeline is maintained centrally by the Golden Path rather than copied independently into every generated service.
+
+A consuming service contains a small workflow that invokes:
+
+```text
+.github/workflows/reusable-ci.yml
+```
+
+The consuming repository explicitly grants the permissions and secrets required by the shared workflow.
+
+The reusable workflow is referenced using an immutable full commit SHA rather than a mutable branch such as `main`.
+
+This allows the platform implementation to be maintained centrally while service teams deliberately adopt vetted workflow versions.
+
+## Copilot-Aware Development
+
+The template includes:
+
+```text
+.github/copilot-instructions.md
+```
+
+These repository-level instructions provide AI coding tools with project-specific engineering context, including:
+
+- Java and Maven conventions
+- project structure
+- testing expectations
+- API conventions
+- build practices
+
+The intent is for AI-assisted development to follow the same paved road as human development rather than requiring developers to repeatedly explain repository conventions.
+
+## Design Philosophy
+
+A Golden Path is not intended to prevent developers from making engineering decisions.
+
+It is intended to remove decisions that every team should not have to make independently.
+
+Service teams own their application logic and domain.
+
+The platform owns reusable engineering capabilities such as:
+
+- build conventions
+- quality gates
+- security controls
+- artifact management
+- software supply-chain controls
+- container publishing
+- developer tooling defaults
+
+The result should be a path that is easier to follow than to avoid.
+
+## Current Limitations
+
+Repository creation from a GitHub template copies service-specific values from the source template.
+
+The included `scripts/init-service.sh` provides a lightweight initialization step that replaces those values after repository creation.
+
+A future platform implementation could move this personalization into the provisioning process so repository creation and service initialization become a single operation.
+
+For now, the initialization script keeps that behavior explicit, understandable, and easy to demonstrate.
