@@ -40,6 +40,27 @@ if [ -f "pom.xml" ]; then
   rm -f pom.xml.bak
 fi
 
+cat > .github/workflows/ci.yml <<'EOF'
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  ci:
+    uses: goodintechnology-com/devex-golden-path/.github/workflows/reusable-ci.yml@354f360d031cf89a756cedf6ed8f3d1e31d8c7da
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      ARTIFACTORY_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+EOF
+
 echo
 echo "Service initialization complete."
 echo
