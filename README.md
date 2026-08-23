@@ -50,27 +50,7 @@ Import the new GitHub repository into SonarQube Cloud.
 
 Because the Golden Path performs SonarQube analysis from CI, disable **Automatic Analysis** for the project.
 
-Create a SonarQube analysis token and add it to the GitHub repository under:
-
-**Settings → Secrets and variables → Actions**
-
-Create the repository secret:
-
-```text
-SONAR_TOKEN
-```
-
-### 4. Configure JFrog
-
-Add the JFrog access token to the GitHub repository's Actions secrets:
-
-```text
-ARTIFACTORY_ACCESS_TOKEN
-```
-
-The Golden Path uses the centrally configured JFrog repositories and Xray security policy. These are platform configuration and should not be renamed for individual services.
-
-### 5. Review the service documentation
+### 4. Review the service documentation
 
 Review and update:
 
