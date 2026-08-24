@@ -69,6 +69,18 @@ git push
 
 The Golden Path CI pipeline will automatically compile, test, analyze, security scan, package, publish artifacts, generate an SBOM, build the container image, and publish the image.
 
+> **Note:** the very first CI run for a brand-new SonarQube Cloud project can fail at the
+> **SonarCloud Quality Gate Check** step with "Quality Gate not set for the project." SonarQube
+> Cloud can't evaluate New Code conditions until a second analysis gives it something to compare
+> against. Re-running the failed job (no code change needed) resolves it — every run after that
+> analyzes normally.
+
+> **Note:** "Use this template" pushes the template's own initial commit to your new repository
+> immediately, before you've run `init-service.sh`, which triggers a CI run of its own. That run
+> still carries the template's identity, so it only compiles and tests — it deliberately skips
+> SonarCloud, Xray, Artifactory, and container publishing so it can't push analysis or artifacts
+> under the template's own project. This is expected; ignore it and continue with the steps above.
+
 ---
 
 ## What the Golden Path Provides
