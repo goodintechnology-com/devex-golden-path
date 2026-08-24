@@ -10,7 +10,7 @@ fi
 
 SERVICE_NAME="$1"
 TEMPLATE_NAME="devex-golden-path"
-SONAR_PROJECT_KEY="rgoodin_${SERVICE_NAME}"
+SONAR_PROJECT_KEY="goodintechnology-com_${SERVICE_NAME}"
 
 echo "Initializing service: $SERVICE_NAME"
 
@@ -30,15 +30,6 @@ replace_in_file() {
 replace_in_file "pom.xml"
 replace_in_file "src/main/resources/application.properties"
 replace_in_file ".github/copilot-instructions.md"
-
-# SonarQube Cloud uses the GitHub organization-prefixed project key.
-if [ -f "pom.xml" ]; then
-  sed -i.bak \
-    -e "s|<sonar.projectKey>${SERVICE_NAME}</sonar.projectKey>|<sonar.projectKey>${SONAR_PROJECT_KEY}</sonar.projectKey>|" \
-    pom.xml
-
-  rm -f pom.xml.bak
-fi
 
 cat > .github/workflows/ci.yml <<'EOF'
 name: CI
@@ -69,8 +60,7 @@ echo "Sonar project key: $SONAR_PROJECT_KEY"
 echo
 echo "Next steps:"
 echo "  1. Review the generated changes with: git diff"
-echo "  2. Import this repository into SonarQube Cloud"
-echo "  3. Disable SonarQube Automatic Analysis"
-echo "  4. Add SONAR_TOKEN to GitHub Actions secrets"
-echo "  5. Add ARTIFACTORY_ACCESS_TOKEN to GitHub Actions secrets"
-echo "  6. Review README.md and CLAUDE.md for service-specific documentation updates"
+echo "  2. In SonarQube Cloud, disable Automatic Analysis for this project"
+echo "     (the GitHub App auto-imports new org repos; CI does the real analysis)"
+echo "  3. Review README.md and CLAUDE.md for service-specific documentation updates"
+echo "  4. Commit and push"

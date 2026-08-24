@@ -46,9 +46,9 @@ git diff
 
 ### 3. Configure SonarQube Cloud
 
-Import the new GitHub repository into SonarQube Cloud.
+The `goodintechnology.com` GitHub App already imports every new repository in the org into SonarQube Cloud automatically, using the project key `goodintechnology-com_<service-name>` — the same key `init-service.sh` wrote into `pom.xml`.
 
-Because the Golden Path performs SonarQube analysis from CI, disable **Automatic Analysis** for the project.
+Because the Golden Path performs SonarQube analysis from CI instead, open the new project in SonarQube Cloud and disable **Automatic Analysis**. `SONAR_TOKEN` and `ARTIFACTORY_ACCESS_TOKEN` are already available to every repository as organization-level GitHub Actions secrets — no per-repository setup needed.
 
 ### 4. Review the service documentation
 
@@ -59,7 +59,7 @@ Review and update:
 
 These files contain descriptive documentation that should reflect the purpose and domain of the new service. They are deliberately not rewritten automatically by the initialization script.
 
-### 6. Commit and push
+### 5. Commit and push
 
 ```bash
 git add .
